@@ -84,6 +84,9 @@ provided in `train_planetoid.sh`:
     sh train_planetoid.sh
 ```
 
+The script creates a `train_log/` folder and writes the output of each run to
+timestamped log files.
+
 Each command in the script launches link prediction training for one of the
 Planetoid datasets using the same models as in the paper.
 

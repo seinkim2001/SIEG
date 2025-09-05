@@ -1,4 +1,9 @@
-cmd_time=`TZ=UTC-8 date  "+%Y%m%d-%H%M%S"`
+#!/bin/bash
+
+cmd_time="$(TZ=UTC-8 date '+%Y%m%d-%H%M%S')"
+
+# ensure log directory exists
+mkdir -p train_log
 
 # Cora
 nohup python3 train.py --device 0 --cmd_time ${cmd_time} --num_heads 8 --dataset Cora --use_feature --epochs 20 --model DGCNNGraphormer_noNeigFeat --runs 3 --batch_size 64 --lr 0.0001 --num_workers 4 --dynamic_train --dynamic_val --dynamic_test --use_len_spd --use_num_spd --use_cnb_jac >> train_log/cora_${cmd_time}.log 2>&1 &
