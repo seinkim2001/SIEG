@@ -4,7 +4,13 @@ import torch
 import argparse
 import numpy as np
 import math
-from torch_geometric.utils import to_undirected, from_scipy_sparse_matrix,dense_to_sparse,is_undirected
+from torch_geometric.utils import (
+    to_undirected,
+    from_scipy_sparse_matrix,
+    dense_to_sparse,
+    is_undirected,
+    drnl_node_labeling,
+)
 from torch_geometric.transforms import NormalizeFeatures
 from torch_geometric.datasets import Planetoid
 import torch.nn.functional as F
@@ -15,8 +21,6 @@ import networkx as nx
 import scipy.sparse as sp
 
 cur_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append('%s/wp_software/' % cur_dir)
-from drnl import drnl_node_labeling
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
