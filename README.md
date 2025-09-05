@@ -29,6 +29,11 @@ conda env create -f environment.yml
 conda activate sieg
 ```
 
+The environment pins `numpy<2` and bundles RDKit together with the PyG
+extensions (`torch-scatter`, `torch-sparse`, `torch-cluster`,
+`torch-spline-conv`) so that `train.py` runs without the `_ARRAY_API not
+found` import errors.
+
 Result
 -----
 |              | ogbl-vessel | ogbl-citation2 | obgl-ppa |

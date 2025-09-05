@@ -9,15 +9,20 @@ dependencies:
   - torchvision
   - torchaudio
   - pytorch-cuda=11.8
-  - numpy
+  - numpy<2
   - scipy
   - scikit-learn
   - pandas
   - psutil
   - tqdm
   - networkx
+  - rdkit
   - pip
   - pip:
       - torch-geometric
       - ogb
       - dgl
+      - "torch-scatter -f https://data.pyg.org/whl/torch-2.1.0+cu118.html"
+      - "torch-sparse -f https://data.pyg.org/whl/torch-2.1.0+cu118.html"
+      - "torch-cluster -f https://data.pyg.org/whl/torch-2.1.0+cu118.html"
+      - "torch-spline-conv -f https://data.pyg.org/whl/torch-2.1.0+cu118.html"
