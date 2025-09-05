@@ -819,7 +819,14 @@ if not args.keep_old:
     root_dir = './' if root_dir == '' else root_dir
     for sub_dir in ['', 'surel_gacc']:
         full_dir = os.path.join(root_dir, sub_dir)
-        files = [f for f in os.listdir(full_dir) if os.path.isfile(os.path.join(full_dir, f)) and os.path.splitext(f)[1] in ['.py", ".c", ".cpp']]
+        if not os.path.isdir(full_dir):
+            continue
+        files = [
+            f
+            for f in os.listdir(full_dir)
+            if os.path.isfile(os.path.join(full_dir, f))
+            and os.path.splitext(f)[1] in ['.py', '.c', '.cpp']
+        ]
         backup_dir = os.path.join(backup_root_dir, sub_dir)
         if not os.path.exists(backup_dir):
             os.mkdir(backup_dir)
