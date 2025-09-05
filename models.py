@@ -525,7 +525,7 @@ def abstract_pair_data(data, z_emb_pair=None):
         pair_data = Data(x=data.pair_x, z=data.pair_z, edge_index=data.pair_edge_idx)
     else:  # 传入z_emb，就用z_emb替代feature
         pair_data = Data(x=z_emb_pair, z=data.pair_z, edge_index=data.pair_edge_idx)
-    for key in data.keys:
+    for key in data.keys():
         if key.startswith('pair_') and key not in ['pair_x', 'pair_z', 'pair_edge_idx']:
             pair_data[key[5:]] = data[key]
     return pair_data

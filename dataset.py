@@ -293,7 +293,7 @@ class SEALIterableDataset(IterableDataset):
                 for i in i_list:
                     data = self.get_data(collate_data, slices_list, i)
                     data.x = None if self.data.x is None else self.data.x[data.node_id, :]
-                    keys = data.keys
+                    keys = list(data.keys())
                     if self.preprocess_fn is not None:
                         # pdb.set_trace()
                         if not has_struct_file:
@@ -303,17 +303,17 @@ class SEALIterableDataset(IterableDataset):
                                 #for key in keys:
                                 #    if key in struct_data.keys:
                                 #        del struct_data.key
-                                if 'x' in struct_data.keys:
+                                if 'x' in struct_data.keys():
                                     del struct_data.x
-                                if 'edge_index' in struct_data.keys:
+                                if 'edge_index' in struct_data.keys():
                                     del struct_data.edge_index
-                                if 'edge_attrs' in struct_data.keys:
+                                if 'edge_attrs' in struct_data.keys():
                                     del struct_data.edge_attrs
-                                if 'y' in struct_data.keys:
+                                if 'y' in struct_data.keys():
                                     del struct_data.y
-                                if 'edge_weight' in struct_data.keys:
+                                if 'edge_weight' in struct_data.keys():
                                     del struct_data.edge_weight
-                                if 'node_id' in struct_data.keys:
+                                if 'node_id' in struct_data.keys():
                                     del struct_data.node_id
                                 struct_data_list[i] = struct_data
                         else:
@@ -322,7 +322,7 @@ class SEALIterableDataset(IterableDataset):
                             #self.preprocess_fn(data, directed=self.directed, degree=self.degree)
                             #for key in struct_data.keys:
                             #    print(key, (data[key] == struct_data[key]).all())
-                            for key in struct_data.keys:
+                            for key in struct_data.keys():
                                 data[key] = struct_data[key].clone()
 
                     if self.use_rpe:
@@ -368,17 +368,17 @@ class SEALIterableDataset(IterableDataset):
                         #for key in keys:
                         #    if key in struct_data.keys:
                         #        del struct_data[key]
-                        if 'x' in struct_data.keys:
+                        if 'x' in struct_data.keys():
                             del struct_data.x
-                        if 'edge_index' in struct_data.keys:
+                        if 'edge_index' in struct_data.keys():
                             del struct_data.edge_index
-                        if 'edge_attrs' in struct_data.keys:
+                        if 'edge_attrs' in struct_data.keys():
                             del struct_data.edge_attrs
-                        if 'y' in struct_data.keys:
+                        if 'y' in struct_data.keys():
                             del struct_data.y
-                        if 'edge_weight' in struct_data.keys:
+                        if 'edge_weight' in struct_data.keys():
                             del struct_data.edge_weight
-                        if 'node_id' in struct_data.keys:
+                        if 'node_id' in struct_data.keys():
                             del struct_data.node_id
                         struct_data_list[i] = struct_data
 
