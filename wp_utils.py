@@ -9,8 +9,41 @@ from torch_geometric.utils import (
     from_scipy_sparse_matrix,
     dense_to_sparse,
     is_undirected,
-    drnl_node_labeling,
+    to_scipy_sparse_matrix,
 )
+
+try:  # PyG >=2.2 ships `drnl_node_labeling`
+    from torch_geometric.utils import drnl_node_labeling
+except Exception:  # pragma: no cover - fallback for older PyG
+    from scipy.sparse.csgraph import shortest_path
+
+    def drnl_node_labeling(edge_index, src, dst, num_nodes=None):
+        src, dst = (dst, src) if src > dst else (src, dst)
+        adj = to_scipy_sparse_matrix(edge_index, num_nodes=num_nodes).tocsr()
+
+        idx = list(range(src)) + list(range(src + 1, adj.shape[0]))
+        adj_wo_src = adj[idx, :][:, idx]
+
+        idx = list(range(dst)) + list(range(dst + 1, adj.shape[0]))
+        adj_wo_dst = adj[idx, :][:, idx]
+
+        dist2src = shortest_path(adj_wo_dst, directed=False, unweighted=True, indices=src)
+        dist2src = np.insert(dist2src, dst, 0, axis=0)
+        dist2src = torch.from_numpy(dist2src)
+
+        dist2dst = shortest_path(adj_wo_src, directed=False, unweighted=True, indices=dst - 1)
+        dist2dst = np.insert(dist2dst, src, 0, axis=0)
+        dist2dst = torch.from_numpy(dist2dst)
+
+        dist = dist2src + dist2dst
+        dist_over_2, dist_mod_2 = dist // 2, dist % 2
+
+        z = 1 + torch.min(dist2src, dist2dst)
+        z += dist_over_2 * (dist_over_2 + dist_mod_2 - 1)
+        z[src] = 1.0
+        z[dst] = 1.0
+        z[torch.isnan(z)] = 0.0
+        return z.to(torch.long)
 from torch_geometric.transforms import NormalizeFeatures
 from torch_geometric.datasets import Planetoid
 import torch.nn.functional as F
