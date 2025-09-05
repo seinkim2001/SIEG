@@ -819,7 +819,14 @@ if not args.keep_old:
     root_dir = './' if root_dir == '' else root_dir
     for sub_dir in ['', 'surel_gacc']:
         full_dir = os.path.join(root_dir, sub_dir)
-        files = [f for f in os.listdir(full_dir) if os.path.isfile(os.path.join(full_dir, f)) and os.path.splitext(f)[1] in ['.py", ".c", ".cpp']]
+        if not os.path.isdir(full_dir):
+            continue
+        files = [
+            f
+            for f in os.listdir(full_dir)
+            if os.path.isfile(os.path.join(full_dir, f))
+            and os.path.splitext(f)[1] in ['.py', '.c', '.cpp']
+        ]
         backup_dir = os.path.join(backup_root_dir, sub_dir)
         if not os.path.exists(backup_dir):
             os.mkdir(backup_dir)
@@ -1180,29 +1187,84 @@ if not args.ngnn_code:
 
     if args.use_full_graphormer:
         collate_fn=partial(collator)
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, 
-                                shuffle=True if args.dynamic_train else False,
-                                num_workers=args.num_workers, collate_fn=collate_fn)
-        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, 
-                                num_workers=args.num_workers, collate_fn=collate_fn)
-        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, 
-                                num_workers=args.num_workers, collate_fn=collate_fn)
-        final_val_loader = DataLoader(final_val_dataset, batch_size=args.batch_size, 
-                                num_workers=args.num_workers, collate_fn=collate_fn)
-        final_test_loader = DataLoader(final_test_dataset, batch_size=args.batch_size, 
-                                num_workers=args.num_workers, collate_fn=collate_fn)
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            shuffle=True if args.dynamic_train else False,
+            num_workers=args.num_workers,
+            collate_fn=collate_fn,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            collate_fn=collate_fn,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            collate_fn=collate_fn,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
+        final_val_loader = DataLoader(
+            final_val_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            collate_fn=collate_fn,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
+        final_test_loader = DataLoader(
+            final_test_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            collate_fn=collate_fn,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
     else:
-        train_loader = PygDataLoader(train_dataset, batch_size=args.batch_size, 
-                                shuffle=True if args.dynamic_train else False,
-                                num_workers=args.num_workers)
-        val_loader = PygDataLoader(val_dataset, batch_size=args.batch_size, 
-                                num_workers=args.num_workers)
-        test_loader = PygDataLoader(test_dataset, batch_size=args.batch_size, 
-                                num_workers=args.num_workers)
-        final_val_loader = PygDataLoader(final_val_dataset, batch_size=args.batch_size, 
-                                num_workers=args.num_workers)
-        final_test_loader = PygDataLoader(final_test_dataset, batch_size=args.batch_size, 
-                                num_workers=args.num_workers)
+        train_loader = PygDataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            shuffle=True if args.dynamic_train else False,
+            num_workers=args.num_workers,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
+        val_loader = PygDataLoader(
+            val_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
+        test_loader = PygDataLoader(
+            test_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
+        final_val_loader = PygDataLoader(
+            final_val_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
+        final_test_loader = PygDataLoader(
+            final_test_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            pin_memory=True,
+            persistent_workers=args.num_workers > 0,
+        )
     # import pdb; pdb.set_trace()
 
 elif args.ngnn_code:
@@ -1342,6 +1404,8 @@ elif args.ngnn_code:
         shuffle=True,  # True-----------------------
         collate_fn=ogbl_collate_fn,
         num_workers=args.num_workers,
+        pin_memory=True,
+        persistent_workers=args.num_workers > 0,
     )
     # pdb.set_trace()
     val_loader = GraphDataLoader(
@@ -1350,6 +1414,8 @@ elif args.ngnn_code:
         shuffle=False,
         collate_fn=ogbl_collate_fn,
         num_workers=args.num_workers,
+        pin_memory=True,
+        persistent_workers=args.num_workers > 0,
     )
     test_loader = GraphDataLoader(
         test_dataset,
@@ -1357,6 +1423,8 @@ elif args.ngnn_code:
         shuffle=False,
         collate_fn=ogbl_collate_fn,
         num_workers=args.num_workers,
+        pin_memory=True,
+        persistent_workers=args.num_workers > 0,
     )
     final_val_loader = GraphDataLoader(
         final_val_dataset,
@@ -1364,6 +1432,8 @@ elif args.ngnn_code:
         shuffle=False,
         collate_fn=ogbl_collate_fn,
         num_workers=args.num_workers,
+        pin_memory=True,
+        persistent_workers=args.num_workers > 0,
     )
     final_test_loader = GraphDataLoader(
         final_test_dataset,
@@ -1371,6 +1441,8 @@ elif args.ngnn_code:
         shuffle=False,
         collate_fn=ogbl_collate_fn,
         num_workers=args.num_workers,
+        pin_memory=True,
+        persistent_workers=args.num_workers > 0,
     )
     # import pdb; pdb.set_trace()
 
