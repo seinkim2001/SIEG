@@ -179,7 +179,19 @@ class SEALOGBLDataset(Dataset):
 
         NIDs, EIDs = subg.ndata[dgl.NID], subg.edata[dgl.EID]  # [32] [72]
 
-        z = ngnn_utils.drnl_node_labeling(subg.adj(scipy_fmt="csr"), 0, 1)  # [32]
+        # DGL's API for obtaining a SciPy adjacency matrix changed across
+        # versions.  Older releases expose ``adj(scipy_fmt="csr")`` while
+        # newer ones (>=1.0) deprecate ``scipy_fmt`` and provide
+        # ``adjacency_matrix`` instead.  The fallback to ``dgl.to_scipy``
+        # keeps compatibility with recent releases such as DGL 2.x.
+        try:
+            adj = subg.adj(scipy_fmt="csr")
+        except TypeError:
+            if hasattr(subg, "adjacency_matrix"):
+                adj = subg.adjacency_matrix(scipy_fmt="csr")
+            else:
+                adj = dgl.to_scipy(subg).tocsr()
+        z = ngnn_utils.drnl_node_labeling(adj, 0, 1)  # [32]
         edge_weights = (
             self.edge_weights[EIDs] if self.edge_weights is not None else None
         )
