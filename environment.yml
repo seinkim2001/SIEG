@@ -1,0 +1,23 @@
+name: sieg
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch=2.1.*
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=11.8
+  - numpy
+  - scipy
+  - scikit-learn
+  - pandas
+  - psutil
+  - tqdm
+  - networkx
+  - pip
+  - pip:
+      - torch-geometric
+      - ogb
+      - dgl

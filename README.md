@@ -21,6 +21,14 @@ Install [OGB](https://ogb.stanford.edu/docs/home/)
 
 Other required python libraries include: numpy, scipy, tqdm etc.
 
+For convenience an `environment.yml` file is provided.  Create and activate the
+conda environment with:
+
+```
+conda env create -f environment.yml
+conda activate sieg
+```
+
 Result
 -----
 |              | ogbl-vessel | ogbl-citation2 | obgl-ppa |
