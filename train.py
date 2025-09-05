@@ -614,12 +614,13 @@ def evaluate_auc(val_pred, val_true, test_pred, test_true):
     return results
 
 # Data settings
-parser = argparse.ArgumentParser(description='OGBL (SEAL)')
+parser = argparse.ArgumentParser(description='OGBL/Planetoid (SEAL)')
 parser.add_argument('--seed', type=int, default=None)
 parser.add_argument('--cmd_time', type=str, default='ignore_time')
 parser.add_argument('--root', type=str, default='dataset',
                     help="root of dataset")
-parser.add_argument('--dataset', type=str, default='ogbl-collab')
+parser.add_argument('--dataset', type=str, default='ogbl-collab',
+                    help="dataset name such as 'ogbl-citation2', 'ogbl-vessel', 'cora', 'citeseer', or 'pubmed'")
 parser.add_argument('--fast_split', action='store_true',
                     help="for large custom datasets (not OGB), do a fast data split")
 # GNN settings

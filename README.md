@@ -61,6 +61,19 @@ or
     sh train_ppa.sh
 ```
 
+### Planetoid datasets
+
+The repository also supports classic citation network benchmarks such as
+**Cora**, **Citeseer**, and **Pubmed**.  Example commands for these datasets are
+provided in `train_planetoid.sh`:
+
+```
+    sh train_planetoid.sh
+```
+
+Each command in the script launches link prediction training for one of the
+Planetoid datasets using the same models as in the paper.
+
 License
 -------
 
