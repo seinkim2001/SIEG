@@ -525,7 +525,7 @@ def abstract_pair_data(data, z_emb_pair=None):
         pair_data = Data(x=data.pair_x, z=data.pair_z, edge_index=data.pair_edge_idx)
     else:  # 传入z_emb，就用z_emb替代feature
         pair_data = Data(x=z_emb_pair, z=data.pair_z, edge_index=data.pair_edge_idx)
-    for key in data.keys:
+    for key in data.keys():
         if key.startswith('pair_') and key not in ['pair_x', 'pair_z', 'pair_edge_idx']:
             pair_data[key[5:]] = data[key]
     return pair_data
@@ -1331,18 +1331,24 @@ class DGCNNGraphormer_noNeigFeat(torch.nn.Module):
 
     def forward(self, data):
         # pdb.set_trace()
-        x = data.x
+        x = data.x if self.use_feature else None
         z = data.z
         edge_index = data.edge_index
         batch = data.batch
-        edge_weight = data.edge_weight
-        node_id = data.node_id
+        edge_weight = getattr(data, "edge_weight", None)
+        node_id = getattr(data, "node_id", None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
             z_emb = z_emb.sum(dim=1)
         h = z_emb
-        ffn_feat = x.to(torch.float)
+        if self.use_feature and x is not None:
+            ffn_feat = x.to(torch.float)
+            h_feature = F.relu(self.lin01(ffn_feat))  # FFN单独编码feature
+        else:
+            h_feature = torch.zeros(
+                (z_emb.size(0), self.lin01.out_features), device=z_emb.device
+            )
 
         if self.node_embedding is not None and node_id is not None:
             n_emb = self.node_embedding(node_id)
@@ -1357,7 +1363,6 @@ class DGCNNGraphormer_noNeigFeat(torch.nn.Module):
         h = torch.cat(hs[1:], dim=-1)  # h: [num_nodes, 3*input_dim+1] [2747, 97]
 
         # linear -> concat -> linear
-        h_feature = F.relu(self.lin01(ffn_feat))  # FFN单独编码feature
         h = torch.cat((h, h_feature), dim=1)
         h = F.relu(self.lin02(h))
 
