@@ -614,12 +614,13 @@ def evaluate_auc(val_pred, val_true, test_pred, test_true):
     return results
 
 # Data settings
-parser = argparse.ArgumentParser(description='OGBL (SEAL)')
+parser = argparse.ArgumentParser(description='OGBL/Planetoid (SEAL)')
 parser.add_argument('--seed', type=int, default=None)
 parser.add_argument('--cmd_time', type=str, default='ignore_time')
 parser.add_argument('--root', type=str, default='dataset',
                     help="root of dataset")
-parser.add_argument('--dataset', type=str, default='ogbl-collab')
+parser.add_argument('--dataset', type=str, default='ogbl-collab',
+                    help="dataset name such as 'ogbl-citation2', 'ogbl-vessel', 'cora', 'citeseer', or 'pubmed'")
 parser.add_argument('--fast_split', action='store_true',
                     help="for large custom datasets (not OGB), do a fast data split")
 # GNN settings
@@ -819,10 +820,15 @@ if not args.keep_old:
     root_dir = './' if root_dir == '' else root_dir
     for sub_dir in ['', 'surel_gacc']:
         full_dir = os.path.join(root_dir, sub_dir)
-        files = [f for f in os.listdir(full_dir) if os.path.isfile(os.path.join(full_dir, f)) and os.path.splitext(f)[1] in ['.py", ".c", ".cpp']]
+        if not os.path.isdir(full_dir):
+            continue
+        files = [
+            f for f in os.listdir(full_dir)
+            if os.path.isfile(os.path.join(full_dir, f))
+            and os.path.splitext(f)[1] in ['.py', '.c', '.cpp']
+        ]
         backup_dir = os.path.join(backup_root_dir, sub_dir)
-        if not os.path.exists(backup_dir):
-            os.mkdir(backup_dir)
+        os.makedirs(backup_dir, exist_ok=True)
         for f in files:
             shutil.copy(os.path.join(full_dir, f), backup_dir)
 log_file = os.path.join(args.res_dir, 'log.txt')

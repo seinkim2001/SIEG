@@ -21,6 +21,19 @@ Install [OGB](https://ogb.stanford.edu/docs/home/)
 
 Other required python libraries include: numpy, scipy, tqdm etc.
 
+For convenience an `environment.yml` file is provided.  Create and activate the
+conda environment with:
+
+```
+conda env create -f environment.yml
+conda activate sieg
+```
+
+The environment pins `numpy<2` and bundles RDKit together with the PyG
+extensions (`torch-scatter`, `torch-sparse`, `torch-cluster`,
+`torch-spline-conv`) so that `train.py` runs without the `_ARRAY_API not
+found` import errors.
+
 Result
 -----
 |              | ogbl-vessel | ogbl-citation2 | obgl-ppa |
@@ -60,6 +73,22 @@ or
 ```
     sh train_ppa.sh
 ```
+
+### Planetoid datasets
+
+The repository also supports classic citation network benchmarks such as
+**Cora**, **Citeseer**, and **Pubmed**.  Example commands for these datasets are
+provided in `train_planetoid.sh`:
+
+```
+    sh train_planetoid.sh
+```
+
+The script creates a `train_log/` folder and writes the output of each run to
+timestamped log files.
+
+Each command in the script launches link prediction training for one of the
+Planetoid datasets using the same models as in the paper.
 
 License
 -------
