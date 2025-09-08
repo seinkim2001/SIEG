@@ -549,38 +549,51 @@ def eval_multiple_models(num_models, **kwargs):
 
 def evaluate_hits(pos_val_pred, neg_val_pred, pos_test_pred, neg_test_pred):
     results = {}
-    for K in args.eval_hits_K:
-        evaluator.K = K
-        valid_hits = evaluator.eval({
-            'y_pred_pos': pos_val_pred,
-            'y_pred_neg': neg_val_pred,
-        })[f'hits@{K}']
-        test_hits = evaluator.eval({
-            'y_pred_pos': pos_test_pred,
-            'y_pred_neg': neg_test_pred,
-        })[f'hits@{K}']
-
-        results[f'Hits@{K}'] = (valid_hits, test_hits)
-
+    if args.dataset.startswith('ogbl'):
+        for K in args.eval_hits_K:
+            evaluator.K = K
+            valid_hits = evaluator.eval({
+                'y_pred_pos': pos_val_pred,
+                'y_pred_neg': neg_val_pred,
+            })[f'hits@{K}']
+            test_hits = evaluator.eval({
+                'y_pred_pos': pos_test_pred,
+                'y_pred_neg': neg_test_pred,
+            })[f'hits@{K}']
+            results[f'Hits@{K}'] = (valid_hits, test_hits)
+    else:
+        neg_val_sorted, _ = torch.sort(neg_val_pred, descending=True)
+        neg_test_sorted, _ = torch.sort(neg_test_pred, descending=True)
+        for K in args.eval_hits_K:
+            val_thres = neg_val_sorted[K-1] if neg_val_sorted.numel() >= K else neg_val_sorted[-1]
+            test_thres = neg_test_sorted[K-1] if neg_test_sorted.numel() >= K else neg_test_sorted[-1]
+            valid_hits = (pos_val_pred > val_thres).float().mean().item()
+            test_hits = (pos_test_pred > test_thres).float().mean().item()
+            results[f'Hits@{K}'] = (valid_hits, test_hits)
     return results
 
 
 def evaluate_mrr(pos_val_pred, neg_val_pred, pos_test_pred, neg_test_pred):
-    neg_val_pred = neg_val_pred.view(pos_val_pred.shape[0], -1)
-    neg_test_pred = neg_test_pred.view(pos_test_pred.shape[0], -1)
     results = {}
-    valid_mrr = evaluator.eval({
-        'y_pred_pos': pos_val_pred,
-        'y_pred_neg': neg_val_pred,
-    })['mrr_list'].mean().item()
-
-    test_mrr = evaluator.eval({
-        'y_pred_pos': pos_test_pred,
-        'y_pred_neg': neg_test_pred,
-    })['mrr_list'].mean().item()
-
-    results['MRR'] = (valid_mrr, test_mrr)
-
+    if args.dataset.startswith('ogbl'):
+        neg_val_pred = neg_val_pred.view(pos_val_pred.shape[0], -1)
+        neg_test_pred = neg_test_pred.view(pos_test_pred.shape[0], -1)
+        valid_mrr = evaluator.eval({
+            'y_pred_pos': pos_val_pred,
+            'y_pred_neg': neg_val_pred,
+        })['mrr_list'].mean().item()
+        test_mrr = evaluator.eval({
+            'y_pred_pos': pos_test_pred,
+            'y_pred_neg': neg_test_pred,
+        })['mrr_list'].mean().item()
+        results['MRR'] = (valid_mrr, test_mrr)
+    else:
+        def _mrr(pos, neg):
+            ranks = (neg.view(1, -1) >= pos.view(-1, 1)).sum(dim=1) + 1
+            return (1.0 / ranks.float()).mean().item()
+        valid_mrr = _mrr(pos_val_pred, neg_val_pred)
+        test_mrr = _mrr(pos_test_pred, neg_test_pred)
+        results['MRR'] = (valid_mrr, test_mrr)
     return results
 
 
