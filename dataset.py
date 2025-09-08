@@ -462,7 +462,11 @@ class SEALIterableDataset(IterableDataset):
                     cat_dim = 0
                 s[cat_dim] = slice(start, end)
             elif start + 1 == end:
-                s = slices[start]
+                # `slices` stores cumulative offsets; when extracting a single
+                # element we need a plain integer index, not a tensor, to avoid
+                # ``TypeError: slice indices must be integers`` when indexing
+                # Python lists or other non-tensor objects.
+                s = slices[start].item()
             else:
                 s = slice(start, end)
             data[key] = item[s]
