@@ -443,7 +443,7 @@ class SEALIterableDataset(IterableDataset):
             elif isinstance(item, int) or isinstance(item, float):
                 collate_data[key] = torch.tensor(collate_data[key])
 
-            slices_list[key] = torch.tensor(slices_list[key], dtype=torch.long)
+            slices_list[key] = torch.tensor(slices_list[key], dtype=torch.long).view(-1)
 
         return collate_data, slices_list
 
@@ -453,6 +453,7 @@ class SEALIterableDataset(IterableDataset):
         data = Data()
         for key in collate_data.keys():
             item, slices = collate_data[key], slices_list[key]
+            slices = slices.view(-1)
             start, end = slices[i].item(), slices[i + 1].item()
             if torch.is_tensor(item):
                 s = list(repeat(slice(None), item.dim()))
