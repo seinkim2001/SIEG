@@ -293,7 +293,7 @@ class SEALIterableDataset(IterableDataset):
                 for i in i_list:
                     data = self.get_data(collate_data, slices_list, i)
                     data.x = None if self.data.x is None else self.data.x[data.node_id, :]
-                    keys = data.keys
+                    keys = data.keys()
                     if self.preprocess_fn is not None:
                         # pdb.set_trace()
                         if not has_struct_file:
@@ -359,7 +359,7 @@ class SEALIterableDataset(IterableDataset):
                                              node_features=self.data.x,
                                              y=y, directed=self.directed, A_t=self.adj_idc_t)
                     data = construct_pyg_graph(*tmp, self.node_label)
-                    keys = data.keys
+                    keys = data.keys()
                     data_copy = data.clone()
                     del data_copy.x
                     data_list.append(data_copy)
