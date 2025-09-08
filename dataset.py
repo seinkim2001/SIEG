@@ -403,7 +403,11 @@ class SEALIterableDataset(IterableDataset):
     def collate(data_list: List[Data]) -> Tuple[Data, Dict[str, torch.Tensor]]:
         r"""Collates a python list of data objects to the internal storage
         format of :class:`torch_geometric.data.InMemoryDataset`."""
-        keys = data_list[0].keys
+        # ``Data.keys`` returns a method in PyG >=2.x, requiring explicit
+        # invocation to obtain the iterable of attribute names.
+        # Some older versions exposed ``keys`` as a list directly.
+        # Calling it unconditionally keeps compatibility across versions.
+        keys = data_list[0].keys()
         collate_data = data_list[0].__class__()
 
         for key in keys:
@@ -447,7 +451,7 @@ class SEALIterableDataset(IterableDataset):
     @staticmethod
     def get_data(collate_data, slices_list, i):
         data = Data()
-        for key in collate_data.keys:
+        for key in collate_data.keys():
             item, slices = collate_data[key], slices_list[key]
             start, end = slices[i].item(), slices[i + 1].item()
             if torch.is_tensor(item):
