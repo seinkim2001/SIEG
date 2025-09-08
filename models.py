@@ -90,7 +90,12 @@ class GCN(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        # Some datasets or preprocessing pipelines may not provide a
+        # `node_id` attribute.  In such cases, accessing it directly will
+        # raise an ``AttributeError``.  To keep the model compatible with
+        # these datasets, we gracefully fall back to ``None`` when the
+        # attribute is missing.
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -169,7 +174,7 @@ class SAGE(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -283,7 +288,7 @@ class DGCNN(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -399,7 +404,7 @@ class DGCNN_noNeigFeat(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -487,7 +492,7 @@ class GIN(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -525,7 +530,7 @@ def abstract_pair_data(data, z_emb_pair=None):
         pair_data = Data(x=data.pair_x, z=data.pair_z, edge_index=data.pair_edge_idx)
     else:  # 传入z_emb，就用z_emb替代feature
         pair_data = Data(x=z_emb_pair, z=data.pair_z, edge_index=data.pair_edge_idx)
-    for key in data.keys:
+    for key in data.keys():
         if key.startswith('pair_') and key not in ['pair_x', 'pair_z', 'pair_edge_idx']:
             pair_data[key[5:]] = data[key]
     return pair_data
@@ -588,7 +593,7 @@ class GCNGraphormer(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -695,7 +700,7 @@ class GCNFFNGraphormer(torch.nn.Module):  # 必须有use_feature，输入FFN
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -817,7 +822,7 @@ class GCNGraphormer_noNeigFeat(torch.nn.Module):  # 这里的use_feature是FFN�
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -922,7 +927,7 @@ class SingleFFN(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -1020,7 +1025,7 @@ class FFNGraphormer(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -1166,7 +1171,7 @@ class DGCNNGraphormer(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -1336,7 +1341,7 @@ class DGCNNGraphormer_noNeigFeat(torch.nn.Module):
         edge_index = data.edge_index
         batch = data.batch
         edge_weight = data.edge_weight
-        node_id = data.node_id
+        node_id = getattr(data, 'node_id', None)
 
         z_emb = self.z_embedding(z)
         if z_emb.ndim == 3:  # in case z has multiple integer labels
@@ -1627,7 +1632,7 @@ class SingleGraphormer(torch.nn.Module):  # use_feature_GT没用，是use_featur
         # edge_index = data.edge_index
         batch = data.batch
         # edge_weight = data.edge_weight
-        # node_id = data.node_id
+        # node_id = getattr(data, 'node_id', None)
 
         # z_emb = self.z_embedding(z)
         # if z_emb.ndim == 3:  # in case z has multiple integer labels

@@ -293,7 +293,7 @@ class SEALIterableDataset(IterableDataset):
                 for i in i_list:
                     data = self.get_data(collate_data, slices_list, i)
                     data.x = None if self.data.x is None else self.data.x[data.node_id, :]
-                    keys = data.keys
+                    keys = data.keys()
                     if self.preprocess_fn is not None:
                         # pdb.set_trace()
                         if not has_struct_file:
@@ -303,17 +303,17 @@ class SEALIterableDataset(IterableDataset):
                                 #for key in keys:
                                 #    if key in struct_data.keys:
                                 #        del struct_data.key
-                                if 'x' in struct_data.keys:
+                                if 'x' in struct_data.keys():
                                     del struct_data.x
-                                if 'edge_index' in struct_data.keys:
+                                if 'edge_index' in struct_data.keys():
                                     del struct_data.edge_index
-                                if 'edge_attrs' in struct_data.keys:
+                                if 'edge_attrs' in struct_data.keys():
                                     del struct_data.edge_attrs
-                                if 'y' in struct_data.keys:
+                                if 'y' in struct_data.keys():
                                     del struct_data.y
-                                if 'edge_weight' in struct_data.keys:
+                                if 'edge_weight' in struct_data.keys():
                                     del struct_data.edge_weight
-                                if 'node_id' in struct_data.keys:
+                                if 'node_id' in struct_data.keys():
                                     del struct_data.node_id
                                 struct_data_list[i] = struct_data
                         else:
@@ -322,8 +322,9 @@ class SEALIterableDataset(IterableDataset):
                             #self.preprocess_fn(data, directed=self.directed, degree=self.degree)
                             #for key in struct_data.keys:
                             #    print(key, (data[key] == struct_data[key]).all())
-                            for key in struct_data.keys:
-                                data[key] = struct_data[key].clone()
+                            for key in struct_data.keys():
+                                value = struct_data[key]
+                                data[key] = value.clone() if hasattr(value, 'clone') else value
 
                     if self.use_rpe:
                         data.x_rpe = get_link_subgraph_rpe(data.node_id[0], data.node_id[1], data.node_id[2:].tolist(), self.A_obsrv_undir.indptr, self.A_obsrv_undir.indices, self.num_walk, self.num_step, replacement=self.replacement, trackback=self.trackback, nthread=0)
@@ -358,7 +359,7 @@ class SEALIterableDataset(IterableDataset):
                                              node_features=self.data.x,
                                              y=y, directed=self.directed, A_t=self.adj_idc_t)
                     data = construct_pyg_graph(*tmp, self.node_label)
-                    keys = data.keys
+                    keys = data.keys()
                     data_copy = data.clone()
                     del data_copy.x
                     data_list.append(data_copy)
@@ -369,17 +370,17 @@ class SEALIterableDataset(IterableDataset):
                         #for key in keys:
                         #    if key in struct_data.keys:
                         #        del struct_data[key]
-                        if 'x' in struct_data.keys:
+                        if 'x' in struct_data.keys():
                             del struct_data.x
-                        if 'edge_index' in struct_data.keys:
+                        if 'edge_index' in struct_data.keys():
                             del struct_data.edge_index
-                        if 'edge_attrs' in struct_data.keys:
+                        if 'edge_attrs' in struct_data.keys():
                             del struct_data.edge_attrs
-                        if 'y' in struct_data.keys:
+                        if 'y' in struct_data.keys():
                             del struct_data.y
-                        if 'edge_weight' in struct_data.keys:
+                        if 'edge_weight' in struct_data.keys():
                             del struct_data.edge_weight
-                        if 'node_id' in struct_data.keys:
+                        if 'node_id' in struct_data.keys():
                             del struct_data.node_id
                         struct_data_list[i] = struct_data
 
@@ -402,7 +403,11 @@ class SEALIterableDataset(IterableDataset):
     def collate(data_list: List[Data]) -> Tuple[Data, Dict[str, torch.Tensor]]:
         r"""Collates a python list of data objects to the internal storage
         format of :class:`torch_geometric.data.InMemoryDataset`."""
-        keys = data_list[0].keys
+        # ``Data.keys`` returns a method in PyG >=2.x, requiring explicit
+        # invocation to obtain the iterable of attribute names.
+        # Some older versions exposed ``keys`` as a list directly.
+        # Calling it unconditionally keeps compatibility across versions.
+        keys = data_list[0].keys()
         collate_data = data_list[0].__class__()
 
         for key in keys:
@@ -438,7 +443,7 @@ class SEALIterableDataset(IterableDataset):
             elif isinstance(item, int) or isinstance(item, float):
                 collate_data[key] = torch.tensor(collate_data[key])
 
-            slices_list[key] = torch.tensor(slices_list[key], dtype=torch.long)
+            slices_list[key] = torch.tensor(slices_list[key], dtype=torch.long).view(-1)
 
         return collate_data, slices_list
 
@@ -446,8 +451,9 @@ class SEALIterableDataset(IterableDataset):
     @staticmethod
     def get_data(collate_data, slices_list, i):
         data = Data()
-        for key in collate_data.keys:
+        for key in collate_data.keys():
             item, slices = collate_data[key], slices_list[key]
+            slices = slices.view(-1)
             start, end = slices[i].item(), slices[i + 1].item()
             if torch.is_tensor(item):
                 s = list(repeat(slice(None), item.dim()))
@@ -456,7 +462,11 @@ class SEALIterableDataset(IterableDataset):
                     cat_dim = 0
                 s[cat_dim] = slice(start, end)
             elif start + 1 == end:
-                s = slices[start]
+                # `slices` stores cumulative offsets; when extracting a single
+                # element we need a plain integer index, not a tensor, to avoid
+                # ``TypeError: slice indices must be integers`` when indexing
+                # Python lists or other non-tensor objects.
+                s = slices[start].item()
             else:
                 s = slice(start, end)
             data[key] = item[s]

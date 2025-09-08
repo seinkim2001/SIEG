@@ -14,7 +14,9 @@ import psutil
 import pdb
 
 import numpy as np
-from sklearn.metrics import roc_auc_score, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import (roc_auc_score, confusion_matrix, accuracy_score,
+                             precision_score, recall_score, f1_score,
+                             average_precision_score)
 import scipy.sparse as ssp
 import torch
 from torch import Tensor
@@ -395,30 +397,25 @@ def test_model(model, loader, num_datas):
 
 
 def eval_model(**kwargs):
-    eval_metric = kwargs["eval_metric"]
-    if eval_metric == 'hits':
-        pos_val_pred = kwargs["pos_val_pred"]
-        neg_val_pred = kwargs["neg_val_pred"]
-        pos_test_pred = kwargs["pos_test_pred"]
-        neg_test_pred = kwargs["neg_test_pred"]
-        results = evaluate_hits(pos_val_pred, neg_val_pred, pos_test_pred, neg_test_pred)
-    elif eval_metric == 'mrr':
-        pos_val_pred = kwargs["pos_val_pred"]
-        neg_val_pred = kwargs["neg_val_pred"]
-        pos_test_pred = kwargs["pos_test_pred"]
-        neg_test_pred = kwargs["neg_test_pred"]
-        results = evaluate_mrr(pos_val_pred, neg_val_pred, pos_test_pred, neg_test_pred)
-    elif eval_metric == 'auc':
-        val_pred = kwargs["val_pred"]
-        val_true = kwargs["val_true"]
-        test_pred = kwargs["test_pred"]
-        test_true = kwargs["test_true"]
-        results = evaluate_auc(val_pred, val_true, test_pred, test_true)
+    pos_val_pred = kwargs["pos_val_pred"]
+    neg_val_pred = kwargs["neg_val_pred"]
+    pos_test_pred = kwargs["pos_test_pred"]
+    neg_test_pred = kwargs["neg_test_pred"]
+    val_pred = kwargs["val_pred"]
+    val_true = kwargs["val_true"]
+    test_pred = kwargs["test_pred"]
+    test_true = kwargs["test_true"]
+
+    results = {}
+    results.update(evaluate_hits(pos_val_pred, neg_val_pred, pos_test_pred, neg_test_pred))
+    results.update(evaluate_mrr(pos_val_pred, neg_val_pred, pos_test_pred, neg_test_pred))
+    results.update(evaluate_auc(val_pred, val_true, test_pred, test_true))
+    results.update(evaluate_ap(val_pred, val_true, test_pred, test_true))
 
     return results
 
 @torch.no_grad()
-def test(eval_metric):
+def test():
     model.eval()
 
     val_pred, val_true, pos_val_pred, neg_val_pred = test_model(model, val_loader, len(val_dataset))
@@ -426,16 +423,11 @@ def test(eval_metric):
     test_pred, test_true, pos_test_pred, neg_test_pred = test_model(model, test_loader, len(test_dataset))
 
     result = eval_model(pos_val_pred=pos_val_pred, neg_val_pred=neg_val_pred, pos_test_pred=pos_test_pred, neg_test_pred=neg_test_pred,
-                      val_pred=val_pred, val_true=val_true, test_pred=test_pred, test_true=test_true, eval_metric=eval_metric)
-    if eval_metric != 'auc':
-        result_auc = eval_model(pos_val_pred=pos_val_pred, neg_val_pred=neg_val_pred, pos_test_pred=pos_test_pred, neg_test_pred=neg_test_pred,
-                          val_pred=val_pred, val_true=val_true, test_pred=test_pred, test_true=test_true, eval_metric='auc')
-        for key in result_auc.keys():
-            result[key] = result_auc[key]
+                       val_pred=val_pred, val_true=val_true, test_pred=test_pred, test_true=test_true)
     return result
 
 @torch.no_grad()
-def final_test(eval_metric):
+def final_test():
     model.eval()
 
     val_pred, val_true, pos_val_pred, neg_val_pred = test_model(model, final_val_loader, len(final_val_dataset))
@@ -443,16 +435,11 @@ def final_test(eval_metric):
     test_pred, test_true, pos_test_pred, neg_test_pred = test_model(model, final_test_loader, len(final_test_dataset))
 
     result = eval_model(pos_val_pred=pos_val_pred, neg_val_pred=neg_val_pred, pos_test_pred=pos_test_pred, neg_test_pred=neg_test_pred,
-                      val_pred=val_pred, val_true=val_true, test_pred=test_pred, test_true=test_true, eval_metric=eval_metric)
-    if eval_metric != 'auc':
-        result_auc = eval_model(pos_val_pred=pos_val_pred, neg_val_pred=neg_val_pred, pos_test_pred=pos_test_pred, neg_test_pred=neg_test_pred,
-                          val_pred=val_pred, val_true=val_true, test_pred=test_pred, test_true=test_true, eval_metric='auc')
-        for key in result_auc.keys():
-            result[key] = result_auc[key]
+                       val_pred=val_pred, val_true=val_true, test_pred=test_pred, test_true=test_true)
     return result
 
 @torch.no_grad()
-def test_multiple_models_origin(models, eval_metric):
+def test_multiple_models_origin(models):
     num_models = len(models)
     for m in models:
         m.eval()
@@ -491,16 +478,17 @@ def test_multiple_models_origin(models, eval_metric):
 
     mem = psutil.virtual_memory()
     print(f' after test - {mem.percent:7} - {mem.free/1024**3:12.2f} - {mem.available/1024**3:13.2f} - {mem.used/1024**3:12.2f}')
-    results = eval_multiple_models(num_models,
-                                pos_val_preds=pos_val_preds, neg_val_preds=neg_val_preds, pos_test_preds=pos_test_preds, neg_test_preds=neg_test_preds,
-                                val_preds=val_preds, val_trues=val_trues, test_preds=test_preds, test_trues=test_trues, eval_metric=eval_metric)
-    if eval_metric != 'auc':
-        results_auc = eval_multiple_models(num_models,
-                                    pos_val_preds=pos_val_preds, neg_val_preds=neg_val_preds, pos_test_preds=pos_test_preds, neg_test_preds=neg_test_preds,
-                                    val_preds=val_preds, val_trues=val_trues, test_preds=test_preds, test_trues=test_trues, eval_metric='auc')
-        for i in range(num_models):
-            for key in results_auc[i].keys():
-                results[i][key] = results_auc[i][key]
+    results = eval_multiple_models(
+        num_models,
+        pos_val_preds=pos_val_preds,
+        neg_val_preds=neg_val_preds,
+        pos_test_preds=pos_test_preds,
+        neg_test_preds=neg_test_preds,
+        val_preds=val_preds,
+        val_trues=val_trues,
+        test_preds=test_preds,
+        test_trues=test_trues,
+    )
 
     return results
 
@@ -538,65 +526,74 @@ def test_multiple_models(models, loader, num_datas):
 
 
 def eval_multiple_models(num_models, **kwargs):
-    eval_metric = kwargs["eval_metric"]
     Results = []
+    pos_val_preds = kwargs["pos_val_preds"]
+    neg_val_preds = kwargs["neg_val_preds"]
+    pos_test_preds = kwargs["pos_test_preds"]
+    neg_test_preds = kwargs["neg_test_preds"]
+    val_preds = kwargs["val_preds"]
+    val_trues = kwargs["val_trues"]
+    test_preds = kwargs["test_preds"]
+    test_trues = kwargs["test_trues"]
+
     for i in range(num_models):
-        if eval_metric == 'hits':
-            pos_val_preds = kwargs["pos_val_preds"]
-            neg_val_preds = kwargs["neg_val_preds"]
-            pos_test_preds = kwargs["pos_test_preds"]
-            neg_test_preds = kwargs["neg_test_preds"]
-            Results.append(evaluate_hits(pos_val_preds[i], neg_val_preds[i], pos_test_preds[i], neg_test_preds[i]))
-        elif eval_metric == 'mrr':
-            pos_val_preds = kwargs["pos_val_preds"]
-            neg_val_preds = kwargs["neg_val_preds"]
-            pos_test_preds = kwargs["pos_test_preds"]
-            neg_test_preds = kwargs["neg_test_preds"]
-            Results.append(evaluate_mrr(pos_val_preds[i], neg_val_preds[i], pos_test_preds[i], neg_test_preds[i]))
-        elif eval_metric == 'auc':
-            val_preds = kwargs["val_preds"]
-            val_trues = kwargs["val_trues"]
-            test_preds = kwargs["test_preds"]
-            test_trues = kwargs["test_trues"]
-            Results.append(evaluate_auc(val_preds[i], val_trues[i], test_preds[i], test_trues[i]))
+        result = {}
+        result.update(evaluate_hits(pos_val_preds[i], neg_val_preds[i], pos_test_preds[i], neg_test_preds[i]))
+        result.update(evaluate_mrr(pos_val_preds[i], neg_val_preds[i], pos_test_preds[i], neg_test_preds[i]))
+        result.update(evaluate_auc(val_preds[i], val_trues[i], test_preds[i], test_trues[i]))
+        result.update(evaluate_ap(val_preds[i], val_trues[i], test_preds[i], test_trues[i]))
+        Results.append(result)
 
     return Results
 
 
 def evaluate_hits(pos_val_pred, neg_val_pred, pos_test_pred, neg_test_pred):
     results = {}
-    for K in args.eval_hits_K:
-        evaluator.K = K
-        valid_hits = evaluator.eval({
-            'y_pred_pos': pos_val_pred,
-            'y_pred_neg': neg_val_pred,
-        })[f'hits@{K}']
-        test_hits = evaluator.eval({
-            'y_pred_pos': pos_test_pred,
-            'y_pred_neg': neg_test_pred,
-        })[f'hits@{K}']
-
-        results[f'Hits@{K}'] = (valid_hits, test_hits)
-
+    if args.dataset.startswith('ogbl'):
+        for K in args.eval_hits_K:
+            evaluator.K = K
+            valid_hits = evaluator.eval({
+                'y_pred_pos': pos_val_pred,
+                'y_pred_neg': neg_val_pred,
+            })[f'hits@{K}']
+            test_hits = evaluator.eval({
+                'y_pred_pos': pos_test_pred,
+                'y_pred_neg': neg_test_pred,
+            })[f'hits@{K}']
+            results[f'Hits@{K}'] = (valid_hits, test_hits)
+    else:
+        neg_val_sorted, _ = torch.sort(neg_val_pred, descending=True)
+        neg_test_sorted, _ = torch.sort(neg_test_pred, descending=True)
+        for K in args.eval_hits_K:
+            val_thres = neg_val_sorted[K-1] if neg_val_sorted.numel() >= K else neg_val_sorted[-1]
+            test_thres = neg_test_sorted[K-1] if neg_test_sorted.numel() >= K else neg_test_sorted[-1]
+            valid_hits = (pos_val_pred > val_thres).float().mean().item()
+            test_hits = (pos_test_pred > test_thres).float().mean().item()
+            results[f'Hits@{K}'] = (valid_hits, test_hits)
     return results
 
 
 def evaluate_mrr(pos_val_pred, neg_val_pred, pos_test_pred, neg_test_pred):
-    neg_val_pred = neg_val_pred.view(pos_val_pred.shape[0], -1)
-    neg_test_pred = neg_test_pred.view(pos_test_pred.shape[0], -1)
     results = {}
-    valid_mrr = evaluator.eval({
-        'y_pred_pos': pos_val_pred,
-        'y_pred_neg': neg_val_pred,
-    })['mrr_list'].mean().item()
-
-    test_mrr = evaluator.eval({
-        'y_pred_pos': pos_test_pred,
-        'y_pred_neg': neg_test_pred,
-    })['mrr_list'].mean().item()
-
-    results['MRR'] = (valid_mrr, test_mrr)
-
+    if args.dataset.startswith('ogbl'):
+        neg_val_pred = neg_val_pred.view(pos_val_pred.shape[0], -1)
+        neg_test_pred = neg_test_pred.view(pos_test_pred.shape[0], -1)
+        valid_mrr = evaluator.eval({
+            'y_pred_pos': pos_val_pred,
+            'y_pred_neg': neg_val_pred,
+        })['mrr_list'].mean().item()
+        test_mrr = evaluator.eval({
+            'y_pred_pos': pos_test_pred,
+            'y_pred_neg': neg_test_pred,
+        })['mrr_list'].mean().item()
+        results['MRR'] = (valid_mrr, test_mrr)
+    else:
+        def _mrr(pos, neg):
+            ranks = (neg.view(1, -1) >= pos.view(-1, 1)).sum(dim=1) + 1
+            return (1.0 / ranks.float()).mean().item()
+        valid_mrr = _mrr(pos_val_pred, neg_val_pred)
+        test_mrr = _mrr(pos_test_pred, neg_test_pred)
+        results['MRR'] = (valid_mrr, test_mrr)
     return results
 
 
@@ -611,6 +608,13 @@ def evaluate_auc(val_pred, val_true, test_pred, test_true):
     #results['Recall'] = (recall_score(val_true, val_pred), recall_score(test_true, test_pred))
     #results['F1'] = (f1_score(val_true, val_pred), f1_score(test_true, test_pred))
 
+    return results
+
+
+def evaluate_ap(val_pred, val_true, test_pred, test_true):
+    valid_ap = average_precision_score(val_true, val_pred)
+    test_ap = average_precision_score(test_true, test_pred)
+    results = {'AP': (valid_ap, test_ap)}
     return results
 
 # Data settings
@@ -737,7 +741,7 @@ parser.add_argument(
     "--eval_hits_K",
     type=int,
     nargs="*",
-    default=[10],
+    default=[100],
     help="hits@K for each eval step; " \
             "only available for datasets with hits@xx as the eval metric",
 )
@@ -819,10 +823,15 @@ if not args.keep_old:
     root_dir = './' if root_dir == '' else root_dir
     for sub_dir in ['', 'surel_gacc']:
         full_dir = os.path.join(root_dir, sub_dir)
-        files = [f for f in os.listdir(full_dir) if os.path.isfile(os.path.join(full_dir, f)) and os.path.splitext(f)[1] in ['.py", ".c", ".cpp']]
+        if not os.path.isdir(full_dir):
+            continue
+        files = [
+            f for f in os.listdir(full_dir)
+            if os.path.isfile(os.path.join(full_dir, f))
+            and os.path.splitext(f)[1] in ['.py', '.c', '.cpp']
+        ]
         backup_dir = os.path.join(backup_root_dir, sub_dir)
-        if not os.path.exists(backup_dir):
-            os.mkdir(backup_dir)
+        os.makedirs(backup_dir, exist_ok=True)
         for f in files:
             shutil.copy(os.path.join(full_dir, f), backup_dir)
 log_file = os.path.join(args.res_dir, 'log.txt')
@@ -835,16 +844,12 @@ with open(log_file, 'a') as f:
     f.write('\n' + cmd_input)
 
 if args.dataset.startswith('ogbl-citation'):
-    args.eval_metric = 'mrr'
     directed = True
 elif args.dataset.startswith('ogbl-vessel'):
-    args.eval_metric = 'auc'
     directed = False
 elif args.dataset.startswith('ogbl'):
-    args.eval_metric = 'hits'
     directed = False
 else:  # assume other datasets are undirected
-    args.eval_metric = 'auc'
     directed = False
 
 #if directed:
@@ -859,18 +864,10 @@ else:  # assume other datasets are undirected
 
 if args.dataset.startswith('ogbl'):
     evaluator = Evaluator(name=args.dataset)
-if args.eval_metric == 'hits':
-    loggers = {
-        f"Hits@{k}": Logger(args.runs, args) for k in args.eval_hits_K
-    }
-elif args.eval_metric == 'mrr':
-    loggers = {
-        'MRR': Logger(args.runs, args),
-    }
-elif args.eval_metric == 'auc':
-    loggers = {
-        'AUC': Logger(args.runs, args),
-    }
+loggers = {f"Hits@{k}": Logger(args.runs, args) for k in args.eval_hits_K}
+loggers['MRR'] = Logger(args.runs, args)
+loggers['AUC'] = Logger(args.runs, args)
+loggers['AP'] = Logger(args.runs, args)
     
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #device = torch.device('cuda:0')
@@ -906,18 +903,17 @@ if args.use_heuristic:
 
     for idx_type in range(len(cn_types)):
         cn_type = cn_types[idx_type]
-        if args.eval_metric == 'hits':
-            results = evaluate_hits(pos_val_pred[idx_type], neg_val_pred[idx_type], pos_test_pred[idx_type], neg_test_pred[idx_type])
-        elif args.eval_metric == 'mrr':
-            results = evaluate_mrr(pos_val_pred[idx_type], neg_val_pred[idx_type], pos_test_pred[idx_type], neg_test_pred[idx_type])
-        elif args.eval_metric == 'auc':
-            val_pred = torch.cat([pos_val_pred[idx_type], neg_val_pred[idx_type]])
-            val_true = torch.cat([torch.ones(pos_val_pred[idx_type].size(0), dtype=int), 
-                                  torch.zeros(neg_val_pred[idx_type].size(0), dtype=int)])
-            test_pred = torch.cat([pos_test_pred[idx_type], neg_test_pred[idx_type]])
-            test_true = torch.cat([torch.ones(pos_test_pred[idx_type].size(0), dtype=int), 
-                                  torch.zeros(neg_test_pred[idx_type].size(0), dtype=int)])
-            results = evaluate_auc(val_pred, val_true, test_pred, test_true)
+        results = {}
+        results.update(evaluate_hits(pos_val_pred[idx_type], neg_val_pred[idx_type], pos_test_pred[idx_type], neg_test_pred[idx_type]))
+        results.update(evaluate_mrr(pos_val_pred[idx_type], neg_val_pred[idx_type], pos_test_pred[idx_type], neg_test_pred[idx_type]))
+        val_pred = torch.cat([pos_val_pred[idx_type], neg_val_pred[idx_type]])
+        val_true = torch.cat([torch.ones(pos_val_pred[idx_type].size(0), dtype=int),
+                              torch.zeros(neg_val_pred[idx_type].size(0), dtype=int)])
+        test_pred = torch.cat([pos_test_pred[idx_type], neg_test_pred[idx_type]])
+        test_true = torch.cat([torch.ones(pos_test_pred[idx_type].size(0), dtype=int),
+                              torch.zeros(neg_test_pred[idx_type].size(0), dtype=int)])
+        results.update(evaluate_auc(val_pred, val_true, test_pred, test_true))
+        results.update(evaluate_ap(val_pred, val_true, test_pred, test_true))
 
         for key, result in results.items():
             loggers[key].reset()
@@ -1541,7 +1537,7 @@ for run in range(args.runs):
         start_epoch = 1001  # stage2的模型从1001开始
 
     if args.only_test:
-        results = test(args.eval_metric)
+        results = test()
         for key, result in results.items():
             loggers[key].add_result(run, result)
         for key, result in results.items():
@@ -1555,7 +1551,7 @@ for run in range(args.runs):
         exit()
 
     if args.only_final_test:  # need continue_from
-        results = final_test(args.eval_metric)
+        results = final_test()
         for key in loggers.keys():
             result = results[key]
         final_valid_str = []
@@ -1585,28 +1581,23 @@ for run in range(args.runs):
         print(f'       tag - percent - mem.free(Gb) - mem.avail(Gb) - mem.used(Gb)')
         mem = psutil.virtual_memory()
         print(f'     begin - {mem.percent:7} - {mem.free/1024**3:12.2f} - {mem.available/1024**3:13.2f} - {mem.used/1024**3:12.2f}')
-        if args.eval_metric != 'auc':
-            val_preds, val_trues, pos_val_preds, neg_val_preds = test_multiple_models(models, val_loader, len(val_dataset))
-        else:
-            val_preds, val_trues, _, _ = test_multiple_models(models, val_loader, len(val_dataset))
+        val_preds, val_trues, pos_val_preds, neg_val_preds = test_multiple_models(models, val_loader, len(val_dataset))
         mem = psutil.virtual_memory()
         print(f' after val - {mem.percent:7} - {mem.free/1024**3:12.2f} - {mem.available/1024**3:13.2f} - {mem.used/1024**3:12.2f}')
-        if args.eval_metric != 'auc':
-            test_preds, test_trues, pos_test_preds, neg_test_preds = test_multiple_models(models, test_loader, len(test_dataset))
-        else:
-            test_preds, test_trues, _, _ = test_multiple_models(models, test_loader, len(test_dataset))
+        test_preds, test_trues, pos_test_preds, neg_test_preds = test_multiple_models(models, test_loader, len(test_dataset))
         mem = psutil.virtual_memory()
         print(f'after test - {mem.percent:7} - {mem.free/1024**3:12.2f} - {mem.available/1024**3:13.2f} - {mem.used/1024**3:12.2f}')
-        results = eval_multiple_models(num_models,
-                            pos_val_preds=pos_val_preds, neg_val_preds=neg_val_preds, pos_test_preds=pos_test_preds, neg_test_preds=neg_test_preds,
-                            val_preds=val_preds, val_trues=val_trues, test_preds=test_preds, test_trues=test_trues, eval_metric=args.eval_metric)
-        if args.eval_metric != 'auc':
-            results_auc = eval_multiple_models(num_models,
-                                pos_val_preds=pos_val_preds, neg_val_preds=neg_val_preds, pos_test_preds=pos_test_preds, neg_test_preds=neg_test_preds,
-                                val_preds=val_preds, val_trues=val_trues, test_preds=test_preds, test_trues=test_trues, eval_metric='auc')
-            for i in range(num_models):
-                for key in results_auc[i].keys():
-                    results[i][key] = results_auc[i][key]
+        results = eval_multiple_models(
+            num_models,
+            pos_val_preds=pos_val_preds,
+            neg_val_preds=neg_val_preds,
+            pos_test_preds=pos_test_preds,
+            neg_test_preds=neg_test_preds,
+            val_preds=val_preds,
+            val_trues=val_trues,
+            test_preds=test_preds,
+            test_trues=test_trues,
+        )
         mem = psutil.virtual_memory()
         print(f'     final - {mem.percent:7} - {mem.free/1024**3:12.2f} - {mem.available/1024**3:13.2f} - {mem.used/1024**3:12.2f}')
         for i, path in enumerate(model_paths):
@@ -1644,7 +1635,7 @@ for run in range(args.runs):
         loss, train_result = train(len(train_dataset))  # {'AUC': 0.9661961285501943}
 
         if epoch % args.eval_steps == 0:
-            results = test(args.eval_metric)  # {'MRR': (0.7427010536193848, 0.7336037158966064), 'AUC': (0.9981022174148187, 0.9458885884261763)}
+            results = test()  # {'MRR': (0.7427010536193848, 0.7336037158966064), 'AUC': (0.9981022174148187, 0.9458885884261763)}
             for key in loggers.keys():  # MRR
                 result = results[key]
                 loggers[key].add_result(run, result)
@@ -1713,7 +1704,7 @@ for run in range(args.runs):
         model.load_state_dict(torch.load(model_name))
         optimizer.load_state_dict(torch.load(optimizer_name))
 
-        results = final_test(args.eval_metric)
+        results = final_test()
         for key in loggers.keys():
             result = results[key]
             loggers[key].add_result(run, result)
