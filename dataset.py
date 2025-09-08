@@ -323,7 +323,8 @@ class SEALIterableDataset(IterableDataset):
                             #for key in struct_data.keys:
                             #    print(key, (data[key] == struct_data[key]).all())
                             for key in struct_data.keys:
-                                data[key] = struct_data[key].clone()
+                                value = struct_data[key]
+                                data[key] = value.clone() if hasattr(value, 'clone') else value
 
                     if self.use_rpe:
                         data.x_rpe = get_link_subgraph_rpe(data.node_id[0], data.node_id[1], data.node_id[2:].tolist(), self.A_obsrv_undir.indptr, self.A_obsrv_undir.indices, self.num_walk, self.num_step, replacement=self.replacement, trackback=self.trackback, nthread=0)
